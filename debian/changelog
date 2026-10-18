@@ -1,3 +1,14 @@
+slrxfm (0.1.0-2) UNRELEASED; urgency=medium
+
+  * Run paste's copy/move (BulkTransferJob) on a worker thread
+    (TransferWorker) instead of blocking the GUI thread, marshaling its
+    conflict dialog back to the GUI thread safely.
+  * Add a real debian/tests/control + debian/tests/ctest autopkgtest,
+    driving the same CTest suite (slrxfm_demo, slrxfm_gui_smoke_test,
+    slrxfm_transfer_worker_test) the local build already registers.
+
+ -- Stefan Andrei Ionut <2014.stefanandreiionut@gmail.com>  Sun, 18 Oct 2026 17:02:08 +0300
+
 slrxfm (0.1.0-1) UNRELEASED; urgency=medium
 
   * Initial packaging. Clean-room C++20 logic layer, Qt6 GUI, real
