@@ -1,0 +1,38 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: slrxfm
+Upstream-Contact: Smech Labs <smechlabs@noreply.smech.dev>
+Source: https://github.com/Smech-Labs/slrxfm
+
+Files: *
+Copyright: 2026 Smech Labs
+License: GPL-3.0-or-later
+
+Files: debian/*
+Copyright: 2026 Smech Labs
+License: GPL-3.0-or-later
+
+Comment:
+ SLRXFM is a clean-room, from-scratch reimplementation of the behavior
+ of the proprietary XandrosFileManager (Xandros Desktop 1.0, 2002).
+ No code, decompiled or otherwise, from that or any other proprietary
+ Xandros component is included in this package; see
+ docs/CLEAN_ROOM.md in the upstream source (installed to
+ /usr/share/doc/slrxfm/CLEAN_ROOM.md) for the methodology and evidence
+ trail. No third-party code, fonts, or other bundled assets are
+ included in this package; the application icon
+ (data/icons/slrxfm.svg) is original artwork authored for this project.
+
+License: GPL-3.0-or-later
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ General Public License for more details.
+ .
+ On Debian systems, the complete text of the GNU General Public
+ License version 3 can be found in
+ "/usr/share/common-licenses/GPL-3".

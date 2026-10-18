@@ -1,0 +1,48 @@
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.TH SLRXFM-GUI 1 "October 2026" "slrxfm 0.1.0" "User Commands"
+.SH NAME
+slrxfm-gui \- Smech Labs Remastered Xandros File Manager
+.SH SYNOPSIS
+.B slrxfm-gui
+.RI [ directory ]
+.SH DESCRIPTION
+.B slrxfm-gui
+is a clean-room, from-scratch reimplementation of the behavior of
+.BR XandrosFileManager ,
+the proprietary file manager shipped with Xandros Desktop 1.0 (2002),
+part of a broader historical-preservation and software-recreation
+project for that distribution. No original Xandros code, decompiled
+or otherwise, is present in this program; see
+.I /usr/share/doc/slrxfm/CLEAN_ROOM.md
+for the full clean-room methodology and evidence trail.
+.PP
+It presents a folder tree alongside a file-detail listing, and
+supports the usual file-manager operations: copy, cut, paste, delete,
+and rename; move-to-trash, restore, and empty-trash; symlink creation;
+and browsing of local, SMB, FTP, and WebDAV locations through one
+unified interface.
+.SH OPTIONS
+.TP
+.I directory
+Optional. The directory to open on startup. Defaults to the user's
+home directory.
+.PP
+Standard Qt options (e.g.
+.B \-platform
+and
+.BR \-style )
+are also accepted; see the upstream Qt documentation for the full
+list.
+.SH FILES
+.TP
+.I ~/.local/share/slrxfm/trash
+Default trash directory used by the move-to-trash/restore/empty-trash
+operations.
+.SH SEE ALSO
+Full documentation and the clean-room methodology are installed under
+.IR /usr/share/doc/slrxfm/ .
+Upstream project:
+.UR https://github.com/Smech-Labs/slrxfm
+.UE
+.SH AUTHOR
+Smech Labs <smechlabs@noreply.smech.dev>

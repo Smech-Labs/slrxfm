@@ -1,0 +1,79 @@
+============================================================================
+DRAFT ONLY -- DO NOT FILE AS-IS.
+============================================================================
+This is a draft of a Debian "Intent To Package" (ITP) bug, prepared for
+the human maintainer of this project to review, edit, and submit
+personally through their own, real, accountable Debian Bug Tracking
+System (BTS) identity.
+
+Filing a real ITP requires a real maintainer email address that can
+receive and answer follow-up mail from Debian Developers and ftpmasters,
+and (eventually) a sponsor or Debian Developer willing to upload the
+package. None of that can or should be automated on the user's behalf --
+no email was sent, no BTS bug was filed, and no account was used to
+produce this draft. Treat everything below as a starting point to edit,
+not a finished submission.
+
+To actually file this (once reviewed/edited), the real mechanism is:
+    To: submit@bugs.debian.org
+    Subject: ITP: slrxfm -- Smech Labs Remastered Xandros File Manager
+    (body as below, as a real email from a real, working address)
+See https://www.debian.org/devel/wnpp/ for the current, authoritative
+instructions -- re-check them before sending, in case the process has
+changed since this draft was written (2026-10-18).
+============================================================================
+
+Package: wnpp
+Severity: wishlist
+Owner: Smech Labs <smechlabs@noreply.smech.dev>
+
+* Package name    : slrxfm
+  Version         : 0.1.0
+  Upstream Author : Smech Labs
+* URL             : https://github.com/Smech-Labs/slrxfm
+* License         : GPL-3.0-or-later
+  Programming Lang: C++ (C++20), Qt6
+  Description     : Smech Labs Remastered Xandros File Manager
+
+SLRXFM is a clean-room, from-scratch reimplementation of the behavior
+of XandrosFileManager, the proprietary file manager shipped with
+Xandros Desktop 1.0 (2002). It is part of a broader
+historical-preservation and software-recreation project for that
+discontinued distribution.
+
+No original Xandros code, decompiled or otherwise, appears anywhere in
+the package's source. The upstream repository documents its clean-room
+methodology in detail (docs/CLEAN_ROOM.md): what was analyzed (string/
+symbol-table evidence plus one targeted decompiled function, confirmed
+to be ordinary ELF startup code), what was deliberately left as an
+open, documented ambiguity rather than guessed at, and the specific
+evidence trail behind each module's scope.
+
+The application provides:
+  - A folder tree and file-detail listing (Qt6 QAbstractItemModel-based)
+  - Copy/cut/paste/delete/rename
+  - Move-to-trash/restore/empty-trash
+  - Symlink creation
+  - Browsing of local, SMB (libsmbclient), FTP (libcurl/MLSD), and
+    WebDAV (libcurl/PROPFIND) locations through one unified interface
+
+Why I am packaging this: [[ MAINTAINER TODO: fill in personal
+motivation -- e.g. "I maintain the broader Xandros historical
+preservation project this is part of, and want users to be able to
+`apt install` a modern, safe, non-proprietary file manager that
+behaves like the one Xandros Desktop 1.0 shipped." Edit to taste. ]]
+
+Current packaging status as of this draft: builds a binary .deb via
+dh/debhelper-compat 13 + the upstream CMake build system; see
+docs/PACKAGING.md in the source tree for the current lintian results
+and what (if anything) still needs fixing before upload. [[ MAINTAINER
+TODO: re-verify this is still accurate before sending -- re-run the
+build and lintian yourself, don't just trust this draft's snapshot. ]]
+
+[[ MAINTAINER TODO: you will need either a Debian Developer sponsor to
+review and upload this package, or to go through the New Member
+process yourself. Mention here if you already have a sponsor lined up,
+or leave this paragraph out if not. ]]
+
+--
+Smech Labs

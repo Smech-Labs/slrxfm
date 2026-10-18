@@ -1,0 +1,7 @@
+slrxfm (0.1.0-1) UNRELEASED; urgency=medium
+
+  * Initial packaging. Clean-room C++20 logic layer, Qt6 GUI, real
+    SMB/FTP/WebDAV backends, desktop integration, and this debian/
+    packaging itself.
+
+ -- Smech Labs <smechlabs@noreply.smech.dev>  Sun, 18 Oct 2026 14:50:48 +0300

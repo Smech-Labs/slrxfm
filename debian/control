@@ -1,0 +1,31 @@
+Source: slrxfm
+Section: utils
+Priority: optional
+Maintainer: Smech Labs <smechlabs@noreply.smech.dev>
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               pkg-config,
+               qt6-base-dev,
+               libsmbclient-dev,
+               libcurl4-openssl-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/Smech-Labs/slrxfm
+Vcs-Browser: https://github.com/Smech-Labs/slrxfm
+Vcs-Git: https://github.com/Smech-Labs/slrxfm.git
+Rules-Requires-Root: no
+
+Package: slrxfm
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Smech Labs Remastered Xandros File Manager
+ SLRXFM is a clean-room, from-scratch reimplementation of the behavior
+ of XandrosFileManager, the proprietary file manager shipped with
+ Xandros Desktop 1.0 (2002), part of a broader historical-preservation
+ and software-recreation project for that distribution. No original
+ Xandros code, decompiled or otherwise, is present in this package;
+ see /usr/share/doc/slrxfm/CLEAN_ROOM.md for the methodology.
+ .
+ It provides a folder tree and file-detail listing, with copy, cut,
+ paste, delete, and rename; move-to-trash, restore, and empty-trash;
+ symlink creation; and browsing of local, SMB, FTP, and WebDAV
+ locations through one unified interface.
