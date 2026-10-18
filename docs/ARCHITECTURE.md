@@ -1,10 +1,11 @@
 # Architecture
 
-SLRXFM is currently a **logic layer**, not a finished application: five
-toolkit-agnostic C++20 modules that model the subsystems identified in
-`XandrosFileManager`, plus a test harness that exercises them against
-real disposable filesystem state. There is no GUI yet — see
-[Roadmap](#roadmap-toward-a-real-application) below.
+SLRXFM has two layers now: a **toolkit-agnostic logic layer**
+(`src/*.hpp`/`*.cpp`, five modules modeling the subsystems identified in
+`XandrosFileManager`, plus `tests/demo_main.cpp` exercising them against
+real disposable filesystem state) and a **Qt6 GUI layer** on top of it
+(`src/gui/`, see [Roadmap](#roadmap-toward-a-real-application) below for
+what that does and doesn't cover yet).
 
 ## Design principles
 
@@ -72,26 +73,64 @@ compiled translation unit, matching conventional C++ library layout
 even though nothing in these modules currently requires out-of-line
 definitions.
 
+## The GUI layer (`src/gui/`)
+
+- `directory_tree_model.hpp` / `directory_list_model.hpp` — Qt6
+  `QAbstractItemModel`/`QAbstractTableModel` adapters. They contain no
+  filesystem logic of their own: the tree model lazily lists
+  directories via `xfm::LocalDirectory::list_children()` (filtered to
+  directories), and the table model shows whatever `IBrowsableLocation`
+  it's pointed at. Both are new UI engineering, not reverse-engineered.
+- `main_window.{hpp,cpp}` — the Qt6 `QMainWindow` shell: address bar,
+  tree+table split, toolbar/context menu. Every action (new folder,
+  copy/cut/paste, delete, rename, move-to-trash, empty-trash, create
+  symlink) calls straight into `file_operations.hpp`/
+  `trash_manager.hpp`/`symlink_dialog.hpp` — the GUI never reimplements
+  that logic itself. `trigger_new_folder()`/`trigger_rename()` are
+  test-only hooks that exercise the exact same code path as the real
+  toolbar actions, used by `tests/gui_smoke_test.cpp`.
+- `app_main.cpp` — the executable entry point (`slrxfm-gui`).
+
+Overall layout (toolbar above a tree+detail split, address bar between
+them) is an ordinary, generic file-manager convention; no Xandros
+screenshot or shipped UI resource was consulted. See
+`docs/CLEAN_ROOM.md` for why that distinction is drawn explicitly.
+
 ## Roadmap toward a real application
 
-What exists today is the behavioral/logic layer only. To become an
-actual usable file manager, in roughly the order it'd make sense to
-tackle:
+Done so far, roughly in the order `docs/ITP_DRAFT.txt`'s predecessor
+(the old roadmap here) laid it out:
 
-1. **A real UI** — Qt6 (`QAbstractItemModel` wrapping `IBrowsableLocation`)
-   or GTK4 (`GListModel`). This is the biggest missing piece.
-2. **Real remote backends** — `SmbShare`/`FtpSite`/`WebDavSite` currently
-   have stub `do_list()` implementations; wiring these to
-   `libsmbclient`, `libcurl`, and a verified WebDAV implementation
-   (see `docs/CLEAN_ROOM.md`'s ambiguity #1) is needed before remote
-   browsing actually works.
-3. **An async transfer worker** — `BulkTransferJob::run()` is currently
-   synchronous/blocking; a `std::jthread`-based worker with real
-   progress reporting would match the responsiveness the original
-   clearly prioritized.
-4. **Desktop integration** — a `.desktop` file, icon, MIME associations,
-   and (if targeting Debian) a `debian/` packaging directory. None of
-   this exists yet.
+1. ~~A real UI~~ — done: Qt6, see [above](#the-gui-layer-srcgui).
+2. ~~Real remote backends~~ — done: `SmbShare` (libsmbclient),
+   `FtpSite` (libcurl, RFC 3659 MLSD), and `WebDavSite` (libcurl,
+   RFC 4918 PROPFIND) all have real `do_list()` implementations in
+   `network_browsing.cpp`, verified against live local test servers.
+   The WebDAV backend is a generic client, not a verified
+   reconstruction of `libxfmwebdata.so` — see `docs/CLEAN_ROOM.md`'s
+   ambiguity #1, which that distinction is deliberately kept separate
+   from.
+4. ~~Desktop integration~~ — done: `data/slrxfm.desktop`, original SVG
+   icon (`data/icons/slrxfm.svg`), AppStream metainfo, and a real
+   `debian/` packaging directory that builds and passes `lintian` (see
+   `docs/PACKAGING.md`).
+
+Still open:
+
+3. **An async transfer worker** — `BulkTransferJob::run()` is still
+   synchronous/blocking, called directly from the GUI thread in
+   `MainWindow::action_paste()`. A `std::jthread`-based worker with
+   real progress reporting (the `ProgressCallback` plumbing already
+   exists) would match the responsiveness the original clearly
+   prioritized, and stop large copies from freezing the UI.
+5. **`debian/tests`/autopkgtest** — `slrxfm_demo` and
+   `slrxfm_gui_smoke_test` exist and pass but aren't wired into CTest
+   (`enable_testing()`/`add_test()`) yet, so there's nothing for
+   `dh_auto_test` or a future `debian/tests/control` to drive
+   automatically.
+6. **The actual Debian process** — an `ITP` bug filed for real (draft
+   at `docs/ITP_DRAFT.txt`), a sponsor/DD, and the `NEW` queue review.
+   Not something this repository's tooling can do on its own.
 
 See the top-level README for how this ties into Debian-archive
 eligibility specifically.
