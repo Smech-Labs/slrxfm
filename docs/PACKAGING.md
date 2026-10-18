@@ -73,16 +73,30 @@ locally with `man --warnings`) and wiring it in via
 
 No errors, and no other warnings, were produced by this lintian run.
 
+## autopkgtest (`debian/tests/`)
+
+`debian/tests/control` declares one test, `ctest`, run by
+`debian/tests/ctest`. It uses `Restrictions: build-needed` (the test
+binaries — `slrxfm_demo`, `slrxfm_gui_smoke_test`,
+`slrxfm_transfer_worker_test` — are build-time-only, never installed
+under `/usr/bin`) and `Depends: @, @builddeps@` so the testbed actually
+has the build toolchain and runtime libraries (Qt6, libsmbclient,
+libcurl) the build needs. That `Depends:` line matters in practice, not
+just on paper: a first version of this test omitted it, and running
+`debian/tests/ctest` against a testbed that only had `cmake` installed
+failed immediately with missing `libsmbclient.so.0`/`libQt6Widgets.so.6`
+— caught by actually executing the script against a minimal container,
+not by reading it. With the declared `Build-Depends` installed, all
+three CTest cases pass.
+
+`dh_auto_test` (part of the ordinary `dh` sequence `debian/rules`
+already invokes) also runs this same CTest suite automatically during
+`dpkg-buildpackage`, independent of `debian/tests/`.
+
 ## What's intentionally not here yet
 
 - No `debian/watch` — there's no tagged upstream release/tarball
   naming convention on GitHub yet for `uscan` to follow; add one once
   there's an actual release flow.
-- No `debian/tests/` (autopkgtest) — the existing `slrxfm_demo` and
-  `slrxfm_gui_smoke_test` binaries aren't wired up as CTest tests yet
-  (see docs/ARCHITECTURE.md), so there's nothing for `dh_auto_test`/
-  autopkgtest to drive automatically today. Wiring `enable_testing()`
-  + `add_test()` into the CMake build would make both the local build
-  and a future `debian/tests/control` straightforward.
 - Only one binary package (`slrxfm`) — no separate `-data` or `-dev`
   split; not warranted at this size.

@@ -15,6 +15,8 @@ add_library(slrxfm-gui-core STATIC
     directory_list_model.hpp
     main_window.hpp
     main_window.cpp
+    transfer_worker.hpp
+    transfer_worker.cpp
 )
 target_include_directories(slrxfm-gui-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(slrxfm-gui-core PUBLIC slrxfm Qt6::Widgets)

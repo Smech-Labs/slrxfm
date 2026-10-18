@@ -21,6 +21,7 @@
 
 #include "directory_tree_model.hpp"
 #include "directory_list_model.hpp"
+#include "file_operations.hpp"
 #include "trash_manager.hpp"
 
 class QLineEdit;
@@ -28,6 +29,7 @@ class QTreeView;
 class QTableView;
 class QAction;
 class QToolBar;
+class QProgressDialog;
 
 namespace xfm::gui {
 
@@ -72,11 +74,19 @@ private slots:
     void action_empty_trash();
     void action_create_symlink();
 
+    // Connected to TransferWorker's signals -- see transfer_worker.hpp.
+    // Always run on this (GUI) thread, regardless of which thread the
+    // worker emits from, because Qt auto-queues cross-thread signal
+    // delivery for AutoConnection connections.
+    void on_transfer_progress(qint64 bytes_done, qint64 bytes_total, QString current_item);
+    void on_transfer_finished(bool success, QString error_message);
+
 private:
     void setup_ui();
     void setup_actions();
     void update_action_enablement();
     std::vector<fs::path> selected_paths() const;
+    ConflictResolution ask_paste_conflict(const fs::path& destination);
 
     fs::path current_dir_;
     fs::path trash_root_;
@@ -84,6 +94,8 @@ private:
 
     std::vector<fs::path> clipboard_;
     bool clipboard_is_cut_ = false;
+    bool transfer_in_progress_ = false;
+    QProgressDialog* progress_dialog_ = nullptr;
 
     QLineEdit* address_bar_ = nullptr;
     QTreeView* tree_view_ = nullptr;

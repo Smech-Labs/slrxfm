@@ -96,6 +96,52 @@ them) is an ordinary, generic file-manager convention; no Xandros
 screenshot or shipped UI resource was consulted. See
 `docs/CLEAN_ROOM.md` for why that distinction is drawn explicitly.
 
+## The async transfer worker (`src/gui/transfer_worker.hpp`)
+
+`BulkTransferJob::run()` (`file_operations.hpp`) itself stays
+synchronous and Qt-free by design — it's the logic layer, exercised
+directly by `tests/demo_main.cpp` with no event loop involved.
+`TransferWorker` (`src/gui/transfer_worker.{hpp,cpp}`) is what makes
+`MainWindow::action_paste()` non-blocking: it runs `BulkTransferJob::run()`
+on a `QThread`, and emits `progressChanged`/`finished` back to the GUI
+thread the normal Qt way (cross-thread signal emission auto-queues).
+
+The one real difficulty is `BulkTransferJob`'s `ConflictCallback`: it
+must still pop a real `QMessageBox`, which only the GUI thread's event
+loop may show. `TransferWorker` takes the conflict-asking function as a
+`ConflictAsker` built by the caller (`MainWindow::ask_paste_conflict`)
+and, whenever `BulkTransferJob` invokes it, marshals that call onto a
+GUI-thread-owned `QObject` via
+`QMetaObject::invokeMethod(..., Qt::BlockingQueuedConnection)`. That
+blocks only the worker thread until the GUI thread's event loop (still
+running normally — starting the worker thread returns immediately)
+services the request and a real dialog answer comes back. This is the
+standard Qt pattern for a worker thread that needs a synchronous answer
+from the GUI thread, and it's exercised directly (no `QApplication`,
+no display needed) by `tests/transfer_worker_test.cpp`, which asserts
+the conflict callback actually runs on the calling thread rather than
+the worker thread, that progress signals fire, and that the files
+really move.
+
+(Deviation from an earlier draft of this roadmap, which proposed
+`std::jthread`: a `QThread` paired with Qt's own signal/slot queuing is
+what makes the GUI-thread marshaling above work without hand-rolling an
+event-posting mechanism, so it's the more idiomatic choice once the
+worker needs to talk back to a Qt event loop at all.)
+
+## Test wiring (`tests/CMakeLists.txt`)
+
+All three test binaries (`slrxfm_demo`, `slrxfm_gui_smoke_test`,
+`slrxfm_transfer_worker_test`) are registered with CTest
+(`enable_testing()` in the top-level `CMakeLists.txt`, `add_test()` per
+binary); `ctest --test-dir build` runs all of them. `debian/tests/control`
++ `debian/tests/ctest` drive the same suite as a real autopkgtest
+(`Restrictions: build-needed`, `Depends: @, @builddeps@` so the testbed
+actually has the toolchain and runtime libraries the build needs — a
+first version of this omitted `Depends:` entirely and was caught by
+actually running the script against a minimal testbed, not just reading
+it).
+
 ## Roadmap toward a real application
 
 Done so far, roughly in the order `docs/ITP_DRAFT.txt`'s predecessor
@@ -110,24 +156,17 @@ Done so far, roughly in the order `docs/ITP_DRAFT.txt`'s predecessor
    reconstruction of `libxfmwebdata.so` — see `docs/CLEAN_ROOM.md`'s
    ambiguity #1, which that distinction is deliberately kept separate
    from.
+3. ~~An async transfer worker~~ — done: see
+   [above](#the-async-transfer-worker-srcguitransfer_workerhpp).
 4. ~~Desktop integration~~ — done: `data/slrxfm.desktop`, original SVG
    icon (`data/icons/slrxfm.svg`), AppStream metainfo, and a real
    `debian/` packaging directory that builds and passes `lintian` (see
    `docs/PACKAGING.md`).
+5. ~~`debian/tests`/autopkgtest~~ — done: see
+   [above](#test-wiring-testscmakeliststxt).
 
 Still open:
 
-3. **An async transfer worker** — `BulkTransferJob::run()` is still
-   synchronous/blocking, called directly from the GUI thread in
-   `MainWindow::action_paste()`. A `std::jthread`-based worker with
-   real progress reporting (the `ProgressCallback` plumbing already
-   exists) would match the responsiveness the original clearly
-   prioritized, and stop large copies from freezing the UI.
-5. **`debian/tests`/autopkgtest** — `slrxfm_demo` and
-   `slrxfm_gui_smoke_test` exist and pass but aren't wired into CTest
-   (`enable_testing()`/`add_test()`) yet, so there's nothing for
-   `dh_auto_test` or a future `debian/tests/control` to drive
-   automatically.
 6. **The actual Debian process** — an `ITP` bug filed for real (draft
    at `docs/ITP_DRAFT.txt`), a sponsor/DD, and the `NEW` queue review.
    Not something this repository's tooling can do on its own.

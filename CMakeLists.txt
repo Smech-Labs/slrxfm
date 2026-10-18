@@ -13,6 +13,7 @@ add_subdirectory(src)
 
 option(SLRXFM_BUILD_TESTS "Build the demo/test harness" ON)
 if(SLRXFM_BUILD_TESTS)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 

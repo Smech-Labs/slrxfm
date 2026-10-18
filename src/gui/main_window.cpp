@@ -12,9 +12,11 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
+#include <QProgressDialog>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QTableView>
+#include <QThread>
 #include <QToolBar>
 #include <QTreeView>
 #include <QVBoxLayout>
@@ -22,6 +24,7 @@
 
 #include "file_operations.hpp"
 #include "symlink_dialog.hpp"
+#include "transfer_worker.hpp"
 
 namespace xfm::gui {
 
@@ -226,26 +229,73 @@ void MainWindow::action_cut() {
     update_action_enablement();
 }
 
-void MainWindow::action_paste() {
-    if (clipboard_.empty()) return;
+ConflictResolution MainWindow::ask_paste_conflict(const fs::path& destination) {
+    // Invoked on the GUI thread only -- either directly (this method isn't
+    // reached any other way) or marshaled there by TransferWorker via
+    // QMetaObject::invokeMethod(..., Qt::BlockingQueuedConnection), so a
+    // real modal dialog is always safe to show here.
+    auto answer = QMessageBox::question(
+        this, QStringLiteral("File exists"),
+        QStringLiteral("\"%1\" already exists here. Overwrite?").arg(QString::fromStdString(destination.filename().string())),
+        QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+    if (answer == QMessageBox::Yes) return ConflictResolution::Overwrite;
+    if (answer == QMessageBox::No) return ConflictResolution::Skip;
+    return ConflictResolution::Cancel;
+}
 
-    BulkTransferJob job(clipboard_, current_dir_, clipboard_is_cut_ ? BulkTransferJob::Mode::Move : BulkTransferJob::Mode::Copy);
-    auto conflict_cb = [this](const fs::path& destination) {
-        auto answer = QMessageBox::question(
-            this, QStringLiteral("File exists"),
-            QStringLiteral("\"%1\" already exists here. Overwrite?").arg(QString::fromStdString(destination.filename().string())),
-            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-        if (answer == QMessageBox::Yes) return ConflictResolution::Overwrite;
-        if (answer == QMessageBox::No) return ConflictResolution::Skip;
-        return ConflictResolution::Cancel;
-    };
-    FileOpResult result = job.run(conflict_cb, {});
-    if (!result.success) {
-        QMessageBox::warning(this, QStringLiteral("Paste"), QString::fromStdString(result.error_message));
-    }
+void MainWindow::action_paste() {
+    if (clipboard_.empty() || transfer_in_progress_) return;
+
+    auto mode = clipboard_is_cut_ ? BulkTransferJob::Mode::Move : BulkTransferJob::Mode::Copy;
+    auto* worker = new TransferWorker(clipboard_, current_dir_, mode, this,
+                                       [this](const fs::path& destination) { return ask_paste_conflict(destination); });
+    auto* thread = new QThread(this);
+    worker->moveToThread(thread);
+
+    transfer_in_progress_ = true;
+    act_paste_->setEnabled(false);
+
+    delete progress_dialog_;
+    progress_dialog_ = new QProgressDialog(QStringLiteral("Transferring..."), QString(), 0, 100, this);
+    progress_dialog_->setWindowModality(Qt::NonModal);
+    progress_dialog_->setMinimumDuration(200);
+    progress_dialog_->setAutoClose(false);
+    progress_dialog_->setAutoReset(false);
+
+    connect(thread, &QThread::started, worker, &TransferWorker::run);
+    connect(worker, &TransferWorker::progressChanged, this, &MainWindow::on_transfer_progress);
+    connect(worker, &TransferWorker::finished, this, &MainWindow::on_transfer_finished);
+    connect(worker, &TransferWorker::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+
     if (clipboard_is_cut_) {
         clipboard_.clear();
     }
+
+    thread->start();
+}
+
+void MainWindow::on_transfer_progress(qint64 bytes_done, qint64 bytes_total, QString current_item) {
+    if (!progress_dialog_) return;
+    if (bytes_total > 0) {
+        progress_dialog_->setMaximum(static_cast<int>(bytes_total));
+        progress_dialog_->setValue(static_cast<int>(bytes_done));
+    }
+    progress_dialog_->setLabelText(QStringLiteral("Transferring \"%1\"...").arg(current_item));
+}
+
+void MainWindow::on_transfer_finished(bool success, QString error_message) {
+    transfer_in_progress_ = false;
+    if (progress_dialog_) {
+        progress_dialog_->close();
+        progress_dialog_->deleteLater();
+        progress_dialog_ = nullptr;
+    }
+    if (!success) {
+        QMessageBox::warning(this, QStringLiteral("Paste"), error_message);
+    }
+    update_action_enablement();
     action_refresh();
 }
 

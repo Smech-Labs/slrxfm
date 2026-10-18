@@ -1,0 +1,21 @@
+#!/bin/sh
+# autopkgtest: run the same logic-layer and GUI-smoke CTest suite the
+# upstream build already registers (see tests/CMakeLists.txt). This needs
+# the source package's own build tree (debian/rules's `dh` invocation
+# builds under obj-<triplet>/), hence `Restrictions: build-needed` in
+# debian/tests/control -- there is nothing installed under /usr/bin to
+# exercise standalone; slrxfm_demo and slrxfm_gui_smoke_test are
+# build-time-only test binaries, not part of the shipped package.
+set -e
+
+cd "$AUTOPKGTEST_BUILD_DIR"
+
+obj_dir=$(find . -maxdepth 1 -type d -name 'obj-*' | head -n1)
+if [ -z "$obj_dir" ]; then
+    echo "autopkgtest/ctest: no obj-*/ build directory found under $AUTOPKGTEST_BUILD_DIR" >&2
+    echo "(expected debian/rules's dh-cmake build to have left one behind)" >&2
+    exit 1
+fi
+
+echo "Running CTest suite from $obj_dir ..."
+ctest --test-dir "$obj_dir" --output-on-failure

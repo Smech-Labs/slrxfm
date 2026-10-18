@@ -85,13 +85,16 @@ Pass 1 covers `XandrosFileManager` only. Related components
 wizard stack are candidates for future passes, each to be documented in
 `docs/CLEAN_ROOM.md` following the same clean-room discipline.
 
-This is now a **usable application**: a real Qt6 GUI, real SMB/FTP/
-WebDAV backends, desktop integration (`.desktop` file, original icon,
-AppStream metadata), and a real `debian/` package that builds and
-passes `lintian` with only one expected warning. See
-`docs/ARCHITECTURE.md`'s roadmap section for what's still open (mainly:
-an async transfer worker instead of `BulkTransferJob` blocking the
-caller, and `debian/tests`/autopkgtest wiring).
+This is now a **usable application**: a real Qt6 GUI (with copy/move
+paste running on a worker thread, not blocking the window — see
+`docs/ARCHITECTURE.md`), real SMB/FTP/WebDAV backends, desktop
+integration (`.desktop` file, original icon, AppStream metadata), a
+real `debian/` package that builds and passes `lintian` with only one
+expected warning, and a working `debian/tests`/autopkgtest wired to the
+same CTest suite the local build runs. See `docs/ARCHITECTURE.md`'s
+roadmap section for what's left — at this point, mainly the actual
+Debian submission process itself, which isn't something tooling can do
+on anyone's behalf.
 
 ## Is this Debian-archive material?
 
@@ -129,10 +132,13 @@ What's left is the part that genuinely can't be automated: an `ITP`
 (Intent To Package) bug filed under a real, accountable identity (a
 draft is at `docs/ITP_DRAFT.txt`), a sponsor or DD to review and upload
 it, and surviving the `NEW` queue review (ftpmasters checking
-licensing, naming, and packaging quality by hand). There's also real,
-but smaller, engineering debt: `BulkTransferJob` still runs
-synchronously rather than on a worker thread, and there's no
-`debian/tests`/autopkgtest wiring yet.
+licensing, naming, and packaging quality by hand). The engineering
+debt that was open as of the previous pass — `BulkTransferJob` running
+synchronously on the GUI thread, and no `debian/tests`/autopkgtest
+wiring — is closed: paste now runs on a worker thread (see
+`docs/ARCHITECTURE.md`), and `debian/tests/control` runs the same
+CTest suite as a real autopkgtest (verified against a from-scratch
+testbed, not just read for correctness).
 
 ## License
 
