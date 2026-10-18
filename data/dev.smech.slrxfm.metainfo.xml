@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<component type="desktop-application">
+  <id>dev.smech.slrxfm</id>
+  <name>SLRXFM</name>
+  <summary>Smech Labs Remastered Xandros File Manager</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="dev.smech">
+    <name>Smech Labs</name>
+  </developer>
+  <description>
+    <p>
+      SLRXFM is a clean-room, from-scratch reimplementation of the
+      behavior of XandrosFileManager, the proprietary file manager
+      shipped with Xandros Desktop 1.0 (2002), part of a broader
+      historical-preservation and software-recreation project for that
+      distribution.
+    </p>
+    <p>
+      It provides a dual-pane style folder tree and file listing, with
+      copy/cut/paste/delete/rename, move-to-trash/restore/empty-trash,
+      symlink creation, and browsing of local, SMB, FTP, and WebDAV
+      locations through one unified interface.
+    </p>
+  </description>
+  <launchable type="desktop-id">slrxfm.desktop</launchable>
+  <url type="homepage">https://github.com/Smech-Labs/slrxfm</url>
+  <url type="vcs-browser">https://github.com/Smech-Labs/slrxfm</url>
+  <provides>
+    <binary>slrxfm-gui</binary>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-10-18">
+      <description>
+        <p>First Debian-packaging-focused development snapshot: real Qt6
+        GUI, real SMB/FTP/WebDAV backends, Debian packaging in progress.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

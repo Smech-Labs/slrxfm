@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=SLRXFM
+GenericName=File Manager
+Comment=Smech Labs Remastered Xandros File Manager
+Exec=slrxfm-gui %f
+TryExec=slrxfm-gui
+Icon=slrxfm
+Terminal=false
+StartupNotify=true
+Categories=System;FileTools;
+MimeType=inode/directory;
+Keywords=files;folder;browser;explorer;xandros;

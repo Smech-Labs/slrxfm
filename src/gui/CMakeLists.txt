@@ -22,4 +22,5 @@ target_link_libraries(slrxfm-gui-core PUBLIC slrxfm Qt6::Widgets)
 add_executable(slrxfm-gui app_main.cpp)
 target_link_libraries(slrxfm-gui PRIVATE slrxfm-gui-core)
 
-install(TARGETS slrxfm-gui RUNTIME DESTINATION bin)
+include(GNUInstallDirs)
+install(TARGETS slrxfm-gui RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
