@@ -91,9 +91,15 @@ interface over direct `QListViewItem` subclassing).
 1. **WebDAV behavior** is inferred only from one hook name
    (`slotXFMWebDataFinished`), not verified against the real
    `libxfmwebdata.so` implementation. `WebDavSite` in
-   `network_browsing.hpp` is a plausible placeholder shape, not a
-   verified reconstruction — it currently fails closed, and its
-   bundled comment says so.
+   `network_browsing.hpp`/`.cpp` now has a functionally real,
+   working WebDAV client (libcurl, RFC 4918 PROPFIND/Depth:1, verified
+   against a live `wsgidav` test server) — but that is ordinary new
+   WebDAV-protocol engineering, not reverse-engineering, and it
+   implements the *generic open standard*, not the original's specific
+   backend. It makes no claim of behavioral parity with
+   `libxfmwebdata.so`'s actual wire behavior, which remains
+   unanalyzed. Do not read a successful listing here as evidence about
+   what the original Xandros component did.
 2. **"Trash" vs. "Dumpster"** both appear as naming in the string
    table for what looks like one mechanism (`slotEmptyDumpster` and
    `slotEmptyTrash` both exist). `trash_manager.hpp` models this as one

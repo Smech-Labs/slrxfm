@@ -15,21 +15,24 @@
 //     out-of-process pattern as CopyAgent, see file_operations.hpp).
 //   - WebDAV: only a hook name (slotXFMWebDataFinished) was found inside
 //     this binary; the real implementation lives in the sibling
-//     libxfmwebdata.so, NOT analyzed this pass. The abstraction below
+//     libxfmwebdata.so, NOT analyzed in this pass. The abstraction below
 //     models WebDAV the same way as the other two remote kinds for
 //     interface consistency, but that specific backend's real wire
-//     behavior is unconfirmed -- treat WebDavSite below as a plausible
-//     placeholder shape, not a verified reconstruction.
+//     behavior remains unconfirmed against libxfmwebdata.so.
 //
-// Modern target: C++20. A real implementation would plug in libsmbclient
-// (or GIO's smb:// backend) for SMB, libcurl for FTP/WebDAV, instead of a
-// bespoke protocol stack; this file models only the listing/connection
-// *interface* the original GUI seems to have relied on (async-capable,
-// capability-queryable, same shape as local directories), not protocol
-// wire details.
+// Backend implementations: as of this revision, SmbShare, FtpSite, and
+// WebDavSite are REAL, working backends (libsmbclient for SMB, libcurl for
+// FTP/WebDAV -- see network_browsing.cpp), not stubs. This is ordinary new
+// engineering against well-documented public APIs, NOT reverse-engineering
+// -- it carries no clean-room concerns of its own. The WebDAV backend
+// specifically is a functionally real, generic RFC 4918 PROPFIND client;
+// it does NOT claim or imply behavioral parity with the original Xandros
+// libxfmwebdata.so, which remains unanalyzed and out of scope. See
+// docs/CLEAN_ROOM.md for that standing ambiguity.
 
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <future>
 #include <memory>
@@ -115,7 +118,9 @@ protected:
 // SMB share browsing. mountNetworkShare()/DisconnectFileSystem() in the
 // original suggest an explicit connect/mount step distinct from listing;
 // we keep that as connect()/disconnect() rather than folding it into
-// do_list() implicitly.
+// do_list() implicitly. Real listing is implemented in network_browsing.cpp
+// via libsmbclient (smbc_opendir/smbc_readdir/smbc_stat), gated behind
+// SLRXFM_HAVE_LIBSMBCLIENT (set by CMake when libsmbclient was found).
 class SmbShare final : public RemoteSite {
 public:
     SmbShare(std::string host, std::string share, std::string workgroup, CredentialPrompt prompt)
@@ -124,30 +129,28 @@ public:
 
     bool connect() {
         if (connected_) return true;
-        auto creds = maybe_prompt_for_credentials();
-        // Real implementation: hand host_/share/workgroup_/creds to
-        // libsmbclient's smbc_wrapper_connect-equivalent call.
-        connected_ = creds.has_value() || allow_anonymous_;
+        creds_ = maybe_prompt_for_credentials();
+        connected_ = creds_.has_value() || allow_anonymous_;
         return connected_;
     }
 
-    void disconnect() { connected_ = false; } // CanDisconnectShare / DisconnectFileSystem
+    void disconnect() { // CanDisconnectShare / DisconnectFileSystem
+        connected_ = false;
+        creds_.reset();
+    }
 
     std::unique_ptr<IBrowsableLocation> open_child(const std::string& name) const override {
-        return std::make_unique<SmbShare>(host_, remote_path_.substr(1) + "/" + name, workgroup_, prompt_);
+        auto child = std::make_unique<SmbShare>(host_, remote_path_.substr(1) + "/" + name, workgroup_, prompt_);
+        child->connected_ = connected_;
+        child->creds_ = creds_;
+        return child;
     }
 
 private:
-    RemoteListingOutcome do_list() const override {
-        if (!connected_) {
-            return {std::nullopt, "Not connected to " + host_};
-        }
-        // Real implementation: smbc_opendir/readdir over remote_path_,
-        // normalized into EntryInfo exactly like LocalDirectory does.
-        return {std::vector<EntryInfo>{}, {}};
-    }
+    RemoteListingOutcome do_list() const override;
 
     std::string workgroup_;
+    std::optional<Credentials> creds_;
     bool connected_ = false;
     bool allow_anonymous_ = true;
 };
@@ -155,8 +158,10 @@ private:
 // FTP site browsing (listing only; transfers are intentionally NOT
 // implemented here -- the legacy app delegated those to a separate
 // "FtpAgent" process, matching the CopyAgent delegation pattern in
-// file_operations.hpp; a modern port should keep that separation, e.g.
-// a worker thread or process using libcurl's easy FTP upload/download).
+// file_operations.hpp; a modern port should keep that separation). Real
+// listing is implemented in network_browsing.cpp via libcurl, using the
+// RFC 3659 MLSD command for a machine-readable (not scraped) directory
+// listing, gated behind SLRXFM_HAVE_LIBCURL.
 class FtpSite final : public RemoteSite {
 public:
     FtpSite(std::string host, std::string remote_path, CredentialPrompt prompt)
@@ -167,19 +172,15 @@ public:
     }
 
 private:
-    RemoteListingOutcome do_list() const override {
-        auto creds = maybe_prompt_for_credentials();
-        if (!creds) {
-            return {std::nullopt, "Login required for " + host_};
-        }
-        // Real implementation: libcurl CURLOPT_URL "ftp://host/path/" with
-        // CURLOPT_DIRLISTONLY + a write callback parsed into EntryInfo.
-        return {std::vector<EntryInfo>{}, {}};
-    }
+    RemoteListingOutcome do_list() const override;
 };
 
-// Placeholder shape only -- see the file header caveat. Not a verified
-// reconstruction of libxfmwebdata's actual behavior.
+// Generic, functionally real RFC 4918 WebDAV client (PROPFIND, Depth: 1),
+// implemented via libcurl in network_browsing.cpp, gated behind
+// SLRXFM_HAVE_LIBCURL. IMPORTANT: this is ordinary new WebDAV-protocol
+// engineering, not a reconstruction of libxfmwebdata.so -- see the file
+// header above and docs/CLEAN_ROOM.md. Do not treat successful listings
+// here as evidence of parity with the original Xandros backend.
 class WebDavSite final : public RemoteSite {
 public:
     WebDavSite(std::string host, std::string remote_path, CredentialPrompt prompt)
@@ -190,11 +191,7 @@ public:
     }
 
 private:
-    RemoteListingOutcome do_list() const override {
-        // Real implementation: HTTP PROPFIND (depth 1) over WebDAV,
-        // parsing the multistatus XML response into EntryInfo records.
-        return {std::nullopt, "WebDAV backend not verified against libxfmwebdata.so (out of scope)"};
-    }
+    RemoteListingOutcome do_list() const override;
 };
 
 } // namespace xfm
