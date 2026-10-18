@@ -165,6 +165,27 @@ inline FileOpResult rename_entry(const fs::path& existing_path, const std::strin
     return {true, {}};
 }
 
+// Create-subfolder: ordinary new engineering, not derived from any binary
+// analysis -- no "New Folder" string/symbol evidence was part of pass 1's
+// scope, this is simply the conventional file-manager operation every GUI
+// needs. Capability-gated by the caller (ItemCapabilities::can_create_subfolder),
+// collision-checked the same way rename_entry() is.
+inline FileOpResult create_subfolder(const fs::path& parent_dir, const std::string& name) {
+    if (name.empty() || name.find('/') != std::string::npos) {
+        return {false, "Invalid name"};
+    }
+    fs::path target = parent_dir / name;
+    std::error_code ec;
+    if (fs::exists(target, ec)) {
+        return {false, "File or folder with such name already exists"};
+    }
+    fs::create_directory(target, ec);
+    if (ec) {
+        return {false, ec.message()};
+    }
+    return {true, {}};
+}
+
 // Delete: capability-gated by the caller (see directory_listing.hpp's
 // ItemCapabilities::can_delete) before this is ever invoked, matching
 // CanDelete()/CanDeleteLocalPath() guarding DeleteRequest().
